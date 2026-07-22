@@ -338,7 +338,7 @@ module tray() {
     }
 }
 
-// Ghost hub for preview
+// Ghost hub: '%' = background only — visible in F5 preview, excluded from F6/STL.
 render_hub_ghost = true;
 
 module ghost_hub() {
@@ -351,7 +351,7 @@ module ghost_hub() {
 tray();
 
 if (render_hub_ghost)
-    ghost_hub();
+    %ghost_hub();
 
 echo("=== Tray v1.2 ===");
 echo("Outer W×D×H mm:", W, D, H);
