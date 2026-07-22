@@ -282,12 +282,11 @@ module right_top_slot() {
 module right_side_bracket_cutout() {
     // Cutout on the RIGHT side bracket of the hub holder (not through the back wall).
     // 8 mm wide (along Y), goes down (hub_H/2 + 5) from the top of the holder.
-    // Open to the top for cable drop-in.
+    // Open to the top for cable drop-in. Centered on hub depth (not biased to front).
     zh = side_bracket_cut_h;
     z0 = hub_z1 - zh;
-    // Place the 8 mm slot through the thickness of the right fence, starting at
-    // the hub front face and going back (into the holder).
-    translate([hub_x1 - eps, hub_y0, z0])
+    y0 = hub_y0 + (hub_T - side_bracket_cut_w) / 2;
+    translate([hub_x1 - eps, y0, z0])
         cube([fence_w + 2*eps, side_bracket_cut_w, H - z0 + eps]);
 }
 
