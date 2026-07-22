@@ -1,5 +1,5 @@
 // =============================================================================
-// Project Trays — USB Hub Stackable Tray  (v1.2)
+// Project Trays — USB Hub Stackable Tray  (v1.3)
 // =============================================================================
 // Outer envelope: 9" W × 6" D × 3" H
 // Front (one 9" side): open, with 1/4" bottom ledge
@@ -8,11 +8,7 @@
 // Walls: ≥ 4 mm outer thickness
 // Units: millimetres
 //
-// v1.2 changes:
-//  - Side brackets extend forward to front of side ridges
-//  - Bottom ridge added (same 5 mm / overhang as side ridges)
-//  - Removed second (lower) back-wall cutout
-//  - Side-bracket cutout on right fence: 8 mm wide, depth hub_H/2+5 from top
+// v1.3: 10 mm wall thickness only at the right cutout bottom sill (not full height)
 // =============================================================================
 
 // --- Conversions ---
@@ -84,10 +80,12 @@ hub_holder_d = hub_y1 - hub_front_y;  // = hub_T + ridge_overhang
 left_open_w = 10;
 left_open_h = 35;
 
-// --- Right zone: 10 mm thick wall + 10 mm top cutout ---
-right_wall_t = 10;     // thickened back wall to the right of the hub
+// --- Right cutout: 10 mm wide; 10 mm wall thickness ONLY at cutout bottom sill ---
+right_wall_t = 10;     // thickness at the sill under the cutout (not full wall height)
 right_slot_w = 10;     // cutout width (exactly 10 mm)
 right_slot_d = 35;     // top cutout depth from top of tray
+right_sill_h = 8;      // height of the thick pad under the cutout bottom
+right_sill_x_pad = 3;  // extra shoulder either side of the 10 mm slot
 
 // Side-bracket cutout (right fence): 8 mm wide, down hub_H/2 + 5 from top of holder
 side_bracket_cut_w = 8;
@@ -127,13 +125,16 @@ module back_wall_main() {
         cube([W, wall, H]);
 }
 
-module back_wall_right_thick() {
-    // Thicken the back wall to 10 mm in the zone to the RIGHT of the hub
-    // (and a hair under the hub right end so the cutout is fully in thick wall).
-    // Thickens INWARD so outer envelope is unchanged.
-    x0 = hub_x1 - 1;
-    translate([x0, D - right_wall_t, 0])
-        cube([W - x0, right_wall_t - wall, H]);
+module back_wall_right_cutout_sill() {
+    // 10 mm thick pad ONLY at the bottom of the right cutout — not full height
+    // up the side. Forms a deep sill so the cable rests on 10 mm of material
+    // instead of a thin 4 mm wall edge. Thickens INWARD (outer envelope unchanged).
+    x0 = right_slot_x0 - right_sill_x_pad;
+    xw = right_slot_w + 2 * right_sill_x_pad;
+    z_sill = H - right_slot_d;           // bottom of the cutout
+    z0 = z_sill - right_sill_h;          // thick pad sits under the sill
+    translate([x0, D - right_wall_t, z0])
+        cube([xw, right_wall_t - wall, right_sill_h]);
 }
 
 module front_ledge() {
@@ -258,18 +259,24 @@ module left_wire_relief() {
 }
 
 module right_top_slot() {
-    // Exactly 10 mm wide × 35 mm deep from top, through the 10 mm thick right wall
-    // and the right fence so cable can leave the hub end upward.
+    // Exactly 10 mm wide × 35 mm deep from top.
+    // Upper span cuts the normal 4 mm back wall; at the sill the pad is 10 mm thick.
     z0 = H - right_slot_d;
     x0 = right_slot_x0;
 
-    // Through thick back wall (and main back wall)
-    translate([x0, D - right_wall_t - eps, z0])
-        cube([right_slot_w, right_wall_t + 2*eps, right_slot_d + eps]);
+    // Through main back wall (full cutout height)
+    translate([x0, D - wall - eps, z0])
+        cube([right_slot_w, wall + 2*eps, right_slot_d + eps]);
+
+    // Clear the thick sill pad at the bottom of the cutout (same X/width)
+    // so the opening lands cleanly on the 10 mm sill top.
+    translate([x0, D - right_wall_t - eps, z0 - eps])
+        cube([right_slot_w, right_wall_t - wall + 2*eps, eps + 1]);
 
     // Channel from hub right end to the slot (through extended fence / bay)
+    // Only needs normal wall depth — not a full-height thick wall.
     translate([hub_x1 - eps, hub_front_y, z0])
-        cube([x0 + right_slot_w - hub_x1 + eps, hub_holder_d + right_wall_t, right_slot_d + eps]);
+        cube([x0 + right_slot_w - hub_x1 + eps, hub_holder_d + wall, right_slot_d + eps]);
 }
 
 module right_side_bracket_cutout() {
@@ -305,7 +312,7 @@ module tray() {
             left_wall();
             right_wall();
             back_wall_main();
-            back_wall_right_thick();
+            back_wall_right_cutout_sill();
             front_ledge();
 
             // Inner stacking ridge at top
@@ -350,7 +357,7 @@ if (render_hub_ghost)
 echo("=== Tray v1.2 ===");
 echo("Outer W×D×H mm:", W, D, H);
 echo("Wall / floor:", wall, floor_t);
-echo("Right wall thick (hub right zone):", right_wall_t);
+echo("Right cutout sill thick (bottom only):", right_wall_t, " sill_h=", right_sill_h);
 echo("Front ledge H:", front_ledge_h);
 echo("Hub cavity X:", hub_x0, "→", hub_x1, " (L=", hub_L, ")");
 echo("Hub cavity Y:", hub_y0, "→", hub_y1, " (T=", hub_T, ")");
