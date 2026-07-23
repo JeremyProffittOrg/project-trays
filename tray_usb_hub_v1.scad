@@ -81,14 +81,15 @@ left_open_w = 10;
 left_open_h = 35;
 
 // --- Right back wall: 10 mm thick on the right side + cable cutout ---
-// Cutout: 5 mm wide × 10 mm high rectangle + 5 mm diameter half-circle below
-// (total opening height = 10 + 2.5 = 12.5 mm from the top).
+// Cutout from the TOP down 15 mm total, fully through the thick wall
+// (outer back face → inner front face). 5 mm wide; bottom is a 5 mm-diameter
+// half-circle (rect portion = 15 - 2.5 = 12.5 mm).
 right_wall_t = 10;
 right_slot_w = 5;
-right_slot_rect_h = 10;
+right_slot_total_h = 15;               // from top of tray down
 right_slot_dia = 5;                    // half-circle diameter (= width)
 right_slot_r = right_slot_dia / 2;     // 2.5
-right_slot_total_h = right_slot_rect_h + right_slot_r;  // 12.5
+right_slot_rect_h = right_slot_total_h - right_slot_r;  // 12.5
 
 // Side-bracket cutout (right fence)
 side_bracket_cut_w = 8;
@@ -254,45 +255,49 @@ module left_wire_relief() {
         cube([fence_w + 2*eps + 2, left_open_w, left_open_h]);
 }
 
-// Right cable cutout through the 10 mm thick right back wall:
-// 5 mm wide, 10 mm high rectangle open from the top, plus a 5 mm-diameter
-// half-circle below (U-notch with rounded bottom). Total height = 10 + 2.5 = 12.5.
+// Right cable cutout: from the TOP of the tray down 15 mm, fully through the
+// 10 mm thick right back wall (outer back face to inner front face of that wall).
+// Profile: 5 mm wide × 12.5 mm rect + 5 mm-diameter half-circle at the bottom.
 module right_cable_cutout() {
     w  = right_slot_w;
     rh = right_slot_rect_h;
     r  = right_slot_r;
+    th = right_slot_total_h;
     x0 = right_slot_x0;
     cx = x0 + w / 2;
+
+    // Full wall thickness: outer back (Y=D) through inner face of thick wall (Y=D-right_wall_t)
     y0 = D - right_wall_t - eps;
     yd = right_wall_t + 2 * eps;
 
-    // 2D profile in XZ, extruded through the thick wall in +Y
-    // rotate([-90,0,0]) maps local +Z extrusion → world +Y
+    // 2D profile in XZ, extruded through the wall in +Y (back → front of wall)
     translate([0, y0, 0])
         rotate([-90, 0, 0])
             linear_extrude(height = yd)
                 translate([cx, 0])
                     union() {
-                        // Rectangle open from top (z = H-rh .. H+)
+                        // Open from top: z = H-rh .. H+
                         translate([-w/2, H - rh])
                             square([w, rh + 1]);
-                        // Half-circle below the rectangle (diameter = 5 mm)
+                        // Half-circle bottom (diameter 5 mm), centre at z = H - rh
                         translate([0, H - rh])
                             difference() {
                                 circle(r = r, $fn = 32);
-                                // Keep only the lower half (negative Y in 2D = down in Z)
                                 translate([-r - 1, 0])
                                     square([2*r + 2, r + 1]);
                             }
                     }
 
+    // Also clear the thin outer 4 mm wall span if stacked (same volume — already covered
+    // by yd through right_wall_t which includes the outer wall band).
+
     // Channel from hub right end through the 5 mm back gap to the cutout
-    z0 = H - right_slot_total_h;
+    z0 = H - th;
     translate([hub_x1 - eps, hub_y1, z0])
         cube([
             x0 + w - hub_x1 + eps,
             (D - wall) - hub_y1 + eps,
-            right_slot_total_h + eps
+            th + eps
         ]);
 }
 
@@ -423,7 +428,7 @@ echo("Hub back gap:", hub_back_gap, "mm from back wall");
 echo("Hub casing top Z:", hub_case_z1, "(+5 mm over hub)");
 echo("Front foot cut: d=", hub_front_cut_d, " h=", hub_front_cut_h, " ledge=", hub_front_ledge);
 echo("Right wall thick:", right_wall_t, "mm (right side)");
-echo("Right cutout: w=", right_slot_w, " rect_h=", right_slot_rect_h, " half-circle d=", right_slot_dia, " total_h=", right_slot_total_h);
+echo("Right cutout: from top down", right_slot_total_h, "mm, w=", right_slot_w, " through", right_wall_t, "mm wall; half-circle d=", right_slot_dia);
 echo("Hub cavity X:", hub_x0, "→", hub_x1);
 echo("Hub cavity Y:", hub_y0, "→", hub_y1);
 echo("Hub cavity Z:", hub_z0, "→", hub_z1);
