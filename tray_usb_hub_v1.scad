@@ -1,5 +1,5 @@
 // =============================================================================
-// Project Trays — USB Hub Stackable Tray  (v1.5)
+// Project Trays — USB Hub Stackable Tray  (v1.6)
 // =============================================================================
 // Outer envelope: 9" W × 6" D × 3" H
 // Front (one 9" side): open, with 1/4" bottom ledge
@@ -8,10 +8,9 @@
 // Walls: ≥ 4 mm outer thickness
 // Units: millimetres
 //
-// v1.5:
-//  - Hub mount 5 mm out from back wall
-//  - Right back wall thickened to 10 mm (full height on right side)
-//  - Right cutout: 5 mm wide × 10 mm high + 5 mm-diameter half-circle below
+// v1.6:
+//  - Remove per-part edge rounding / vertical-only fillets
+//  - Round all external corners at 1 mm (true 3D) on the finished solid
 // =============================================================================
 
 // --- Conversions ---
@@ -26,7 +25,7 @@ H = 3 * inch;          // 76.2   height (Z)
 wall      = 4;         // outer wall thickness (mm) — minimum per brief
 floor_t   = 4;         // floor thickness
 front_ledge_h = 0.25 * inch;  // 1/4" open-front ledge
-corner_r  = 1;         // 1 mm rounding on corners
+corner_r  = 1;         // 1 mm on all external corners
 
 // --- Stackability (INNER ridge at top) ---
 stack_lip_h   = 3;
@@ -81,16 +80,14 @@ left_open_w = 10;
 left_open_h = 35;
 
 // --- Right back wall: 10 mm thick on the right side + cable cutout ---
-// Vertical U-notch in the back wall face (rotated into correct orientation):
-//   - 5 mm wide (X)
-//   - from the TOP down 15 mm (Z), half-circle d=5 at the bottom
-//   - through the full thick wall (outer back face → inner front face, Y)
+// Vertical U-notch: 5 mm wide, 15 mm from top, half-circle d=5 at bottom,
+// through full thick wall (outer back → inner front).
 right_wall_t = 10;
-right_slot_w = 5;                      // width in X
-right_slot_h = 15;                     // from top of tray down
-right_slot_dia = 5;                    // half-circle diameter at bottom
-right_slot_r = right_slot_dia / 2;     // 2.5
-right_slot_rect_h = right_slot_h - right_slot_r;  // 12.5 straight + 2.5 radius
+right_slot_w = 5;
+right_slot_h = 15;
+right_slot_dia = 5;
+right_slot_r = right_slot_dia / 2;
+right_slot_rect_h = right_slot_h - right_slot_r;
 
 // Side-bracket cutout (right fence)
 side_bracket_cut_w = 8;
@@ -101,51 +98,18 @@ fence_w = 3;
 $fn = 48;
 eps = 0.05;
 
-// Centre the 5 mm cutout in the right residual band (between hub end and tray end)
+// Centre the 5 mm cutout in the right residual band
 right_slot_x0 = hub_x1 + ( (W - hub_x1) - right_slot_w ) / 2;
 
 // =============================================================================
-// PRIMITIVES — rounded boxes (vertical corners + optional full 3D corners)
-// =============================================================================
-
-// Rounded rectangle extruded (rounds all vertical corners). r clamped to size.
-module rounded_rect_extrude(size, r, center = false) {
-    x = size[0];
-    y = size[1];
-    z = size[2];
-    rr = min(r, x / 2 - eps, y / 2 - eps);
-    translate(center ? [-x/2, -y/2, -z/2] : [0, 0, 0])
-        linear_extrude(height = z)
-            offset(r = rr)
-                offset(r = -rr)
-                    square([x, y]);
-}
-
-// Full 3D corner rounding via minkowski (use sparingly on small parts).
-module rounded_cube3(size, r) {
-    rr = min(r, size[0]/2 - eps, size[1]/2 - eps, size[2]/2 - eps);
-    if (rr <= 0) {
-        cube(size);
-    } else {
-        minkowski() {
-            translate([rr, rr, rr])
-                cube([size[0] - 2*rr, size[1] - 2*rr, size[2] - 2*rr]);
-            sphere(r = rr, $fn = 20);
-        }
-    }
-}
-
-// =============================================================================
-// STRUCTURE
+// STRUCTURE (all sharp — external rounding applied only at the end)
 // =============================================================================
 
 module floor_plate() {
-    rounded_rect_extrude([W, D, floor_t], corner_r);
+    cube([W, D, floor_t]);
 }
 
 module left_wall() {
-    // Outer front/back corners of left wall get rounding via outer envelope pass;
-    // wall itself is a simple slab (joins floor/back).
     cube([wall, D, H]);
 }
 
@@ -159,8 +123,8 @@ module back_wall_main() {
         cube([W, wall, H]);
 }
 
-// Full-height 10 mm thickening of the back wall on the RIGHT side of the tray
-// (from hub right end to outer right). Thickens INWARD so outer envelope is unchanged.
+// Full-height 10 mm thickening of the back wall on the RIGHT side.
+// Thickens INWARD so outer envelope is unchanged.
 module back_wall_right_thick() {
     x0 = hub_x1;
     translate([x0, D - right_wall_t, 0])
@@ -168,8 +132,7 @@ module back_wall_right_thick() {
 }
 
 module front_ledge() {
-    // Rounded outer front corners of the ledge footprint
-    rounded_rect_extrude([W, wall, floor_t + front_ledge_h], corner_r);
+    cube([W, wall, floor_t + front_ledge_h]);
 }
 
 module stack_inner_ridge() {
@@ -200,12 +163,12 @@ module stack_bottom_foot_cut() {
 module hub_side_fence_left() {
     x = hub_x0 - fence_w;
     translate([x, hub_front_y, floor_t])
-        rounded_rect_extrude([fence_w, hub_holder_d, hub_case_z1 - floor_t], min(corner_r, fence_w/2 - eps));
+        cube([fence_w, hub_holder_d, hub_case_z1 - floor_t]);
 }
 
 module hub_side_fence_right() {
     translate([hub_x1, hub_front_y, floor_t])
-        rounded_rect_extrude([fence_w, hub_holder_d, hub_case_z1 - floor_t], min(corner_r, fence_w/2 - eps));
+        cube([fence_w, hub_holder_d, hub_case_z1 - floor_t]);
 }
 
 module hub_shelf() {
@@ -215,7 +178,6 @@ module hub_shelf() {
 
 module hub_side_ridges() {
     z0 = hub_z0 + ridge_z_pad;
-    // Extend ridges up with the casing (+5 mm above hub)
     zh = hub_H - 2*ridge_z_pad + hub_case_extra_h;
     translate([hub_x0, hub_front_y, z0])
         cube([ridge_w, ridge_overhang + eps, zh]);
@@ -228,15 +190,12 @@ module hub_bottom_ridge() {
         cube([hub_L, ridge_overhang + eps, ridge_w]);
 }
 
-// 2×2 mm ledge on the floor, level with the front of the hub casing,
-// spanning the full casing width, in front of the front foot cutout.
+// 2×2 mm ledge on the floor, level with the front of the hub casing
 module hub_front_floor_ledge() {
     x0 = hub_x0 - fence_w;
     xw = hub_L + 2*fence_w;
-    // Front face of ledge flush with hub casing front (hub_front_y);
-    // ledge occupies y in [hub_front_y - 2, hub_front_y], z floor_t .. floor_t+2
     translate([x0, hub_front_y - hub_front_ledge, floor_t])
-        rounded_rect_extrude([xw, hub_front_ledge, hub_front_ledge], min(corner_r, 0.8));
+        cube([xw, hub_front_ledge, hub_front_ledge]);
 }
 
 // =============================================================================
@@ -245,7 +204,6 @@ module hub_front_floor_ledge() {
 
 module hub_body_void() {
     fit = 0.6;
-    // Cavity for hub body; open above casing for drop-in
     translate([hub_x0 - fit/2, hub_y0, hub_z0])
         cube([hub_L + fit, hub_T + fit, H - hub_z0 + eps]);
 }
@@ -256,26 +214,22 @@ module left_wire_relief() {
         cube([fence_w + 2*eps + 2, left_open_w, left_open_h]);
 }
 
-// Right cable cutout — vertical U-notch through the thick back wall:
-// open at the top, 15 mm down, 5 mm wide, half-circle (d=5) at the bottom.
-// Cuts all the way through the wall (outer back → inner front of the 10 mm wall).
+// Right cable cutout — vertical U-notch through the thick back wall
 module right_cable_cutout() {
-    w  = right_slot_w;        // 5
-    h  = right_slot_h;        // 15 from top
-    r  = right_slot_r;        // 2.5
+    w  = right_slot_w;
+    h  = right_slot_h;
+    r  = right_slot_r;
     x0 = right_slot_x0;
     cx = x0 + w / 2;
 
-    // Full thickness of the thick right back wall (and a hair past both faces)
     y0 = D - right_wall_t - eps;
     yd = right_wall_t + 2 * eps;
 
-    // Straight section: from z = (H - h + r) up through the top
-    // (= 12.5 mm of vertical sides above the half-circle centre)
+    // Straight section open from top
     translate([x0, y0, H - h + r])
         cube([w, yd, h - r + 1]);
 
-    // Half-circle bottom: cylinder axis through the wall (Y), centre at bottom of straight
+    // Half-circle bottom
     translate([cx, y0, H - h + r])
         rotate([-90, 0, 0])
             cylinder(r = r, h = yd, $fn = 32);
@@ -283,14 +237,12 @@ module right_cable_cutout() {
 
 module right_side_bracket_cutout() {
     zh = side_bracket_cut_h;
-    // Measured from original hub top; casing is higher but cut still from hub mid-band
     z0 = hub_z1 - zh;
     y0 = hub_y0 + (hub_T - side_bracket_cut_w) / 2;
     translate([hub_x1 - eps, y0, z0])
         cube([fence_w + 2*eps, side_bracket_cut_w, H - z0 + eps]);
 }
 
-// Front of hub casing: from floor to 5 mm up, cut back 5 mm into the casing
 module hub_front_foot_cut() {
     x0 = hub_x0 - fence_w - eps;
     xw = hub_L + 2*fence_w + 2*eps;
@@ -301,51 +253,17 @@ module hub_front_foot_cut() {
 module hub_access_throat() {
     plug_clear_d = 25;
     plug_clear_h = 8;
-    // Stop short of the 2 mm floor ledge
     y1 = hub_front_y - hub_front_ledge;
     y0 = y1 - plug_clear_d;
     translate([hub_x0 + ridge_w, y0, floor_t - eps])
         cube([hub_L - 2*ridge_w, plug_clear_d, plug_clear_h + eps]);
 }
 
-// Outer vertical corner fillet cutters: subtract (square − cylinder) at each
-// outer corner so the remaining solid has a 1 mm rounded corner.
-module outer_corner_fillet_cutters() {
-    r = corner_r;
-    // Front-left
-    translate([0, 0, -eps])
-        difference() {
-            cube([r + eps, r + eps, H + 2*eps]);
-            translate([r, r, -eps])
-                cylinder(r = r, h = H + 4*eps, $fn = 32);
-        }
-    // Front-right
-    translate([W - r, 0, -eps])
-        difference() {
-            cube([r + eps, r + eps, H + 2*eps]);
-            translate([0, r, -eps])
-                cylinder(r = r, h = H + 4*eps, $fn = 32);
-        }
-    // Back-right
-    translate([W - r, D - r, -eps])
-        difference() {
-            cube([r + eps, r + eps, H + 2*eps]);
-            translate([0, 0, -eps])
-                cylinder(r = r, h = H + 4*eps, $fn = 32);
-        }
-    // Back-left
-    translate([0, D - r, -eps])
-        difference() {
-            cube([r + eps, r + eps, H + 2*eps]);
-            translate([r, 0, -eps])
-                cylinder(r = r, h = H + 4*eps, $fn = 32);
-        }
-}
-
 // =============================================================================
 // ASSEMBLY
 // =============================================================================
 
+// Sharp solid (no rounding)
 module tray_raw() {
     difference() {
         union() {
@@ -377,11 +295,18 @@ module tray_raw() {
     }
 }
 
+// Round all external corners at 1 mm:
+// minkowski with a sphere expands the solid by r (rounding every convex feature);
+// intersecting back with the original outer box keeps the envelope at W×D×H so
+// outer faces stay put while external corners/edges become true 1 mm rounds.
 module tray() {
-    // Apply 1 mm outer vertical corner rounding to the finished solid
-    difference() {
-        tray_raw();
-        outer_corner_fillet_cutters();
+    r = corner_r;
+    intersection() {
+        cube([W, D, H]);
+        minkowski() {
+            tray_raw();
+            sphere(r = r, $fn = 16);
+        }
     }
 }
 
@@ -400,9 +325,9 @@ tray();
 if (render_hub_ghost)
     %ghost_hub();
 
-echo("=== Tray v1.5 ===");
+echo("=== Tray v1.6 ===");
 echo("Outer W×D×H mm:", W, D, H);
-echo("Corner radius:", corner_r);
+echo("External corner radius:", corner_r, "mm (all external corners)");
 echo("Wall / floor:", wall, floor_t);
 echo("Hub back gap:", hub_back_gap, "mm from back wall");
 echo("Hub casing top Z:", hub_case_z1, "(+5 mm over hub)");
