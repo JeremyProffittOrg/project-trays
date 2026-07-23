@@ -1,5 +1,5 @@
 // =============================================================================
-// Project Trays — USB Hub Stackable Tray  (v1.3)
+// Project Trays — USB Hub Stackable Tray  (v1.4)
 // =============================================================================
 // Outer envelope: 9" W × 6" D × 3" H
 // Front (one 9" side): open, with 1/4" bottom ledge
@@ -8,7 +8,12 @@
 // Walls: ≥ 4 mm outer thickness
 // Units: millimetres
 //
-// v1.3: 10 mm wall thickness only at the right cutout bottom sill (not full height)
+// v1.4:
+//  - 1 mm rounding on corners
+//  - Right-wall block from back cutout (in 10 mm, down to floor, hub-side wide)
+//  - Removed behind-hub back-wall groove
+//  - Hub casing +5 mm height
+//  - Front casing foot cut 5 mm deep × 5 mm high + 2×2 mm floor ledge
 // =============================================================================
 
 // --- Conversions ---
@@ -23,23 +28,21 @@ H = 3 * inch;          // 76.2   height (Z)
 wall      = 4;         // outer wall thickness (mm) — minimum per brief
 floor_t   = 4;         // floor thickness
 front_ledge_h = 0.25 * inch;  // 1/4" open-front ledge
+corner_r  = 1;         // 1 mm rounding on corners
 
 // --- Stackability (INNER ridge at top) ---
-// Upper tray bottom sits on an inward ledge near the top of the lower tray.
-stack_lip_h   = 3;     // vertical thickness of inner ridge / bottom foot height
-stack_step    = 2;     // how far the inner ridge projects into the cavity
-stack_clear   = 0.5;   // print clearance between foot and ridge
+stack_lip_h   = 3;
+stack_step    = 2;
+stack_clear   = 0.5;
 
 // --- Anker hub ---
-hub_L = 151;           // length along back wall (X)
-hub_T = 20;            // thickness into tray (Y)
-hub_H = 50;            // height (Z)
+hub_L = 151;
+hub_T = 20;
+hub_H = 50;
 
-// End clearances (from outer tray ends, along X)
-clear_half_in = 0.5 * inch;  // 12.7  — end with right slots
-clear_48      = 48;          //      — left clearance
+clear_half_in = 0.5 * inch;
+clear_48      = 48;
 
-// Left: 48 mm clearance. Right: residual ≥ 1/2".
 hub_x0 = clear_48;
 hub_x1 = hub_x0 + hub_L;
 echo("hub X range", hub_x0, "→", hub_x1, "  right residual", W - hub_x1);
@@ -50,67 +53,97 @@ assert(hub_x0 >= clear_48 - 0.01, "Hub does not leave 48 mm on left side");
 hub_shelf_h = 6;
 hub_z0 = floor_t + hub_shelf_h;
 hub_z1 = hub_z0 + hub_H;
+hub_case_extra_h = 5;                 // extend hub casing up 5 mm
+hub_case_z1 = hub_z1 + hub_case_extra_h;
 
 // Coordinate system:
 //   X: 0 = left outer,  W = right outer
 //   Y: 0 = front outer, D = back outer
 //   Z: 0 = bottom outer, H = top
-// Main back wall inner face at Y = D - wall (4 mm wall).
-// Right-of-hub zone uses a thicker 10 mm back wall.
 hub_y1 = D - wall;
 hub_y0 = hub_y1 - hub_T;
 
-// Behind-hub wire groove (main 4 mm back wall only, under hub span)
-groove_depth = 5;
-groove_h     = 15;
-groove_z0    = hub_z0 + 5;
-groove_margin_x = 2;
-
 // --- Hub side / bottom hold ridges ---
-// 5 mm ridges that catch the front of the hub (sides + bottom).
-ridge_w = 5;           // side ridge width (X) / bottom ridge height (Z)
-ridge_overhang = 2.5;  // how far in front of hub face (Y-) to hold it
-ridge_z_pad = 2;       // small clearance under/over hub for drop-in on side ridges
+ridge_w = 5;
+ridge_overhang = 2.5;
+ridge_z_pad = 2;
 
-// Front face of hub holder (side brackets + ridges align here)
 hub_front_y = hub_y0 - ridge_overhang;
-hub_holder_d = hub_y1 - hub_front_y;  // = hub_T + ridge_overhang
+hub_holder_d = hub_y1 - hub_front_y;
 
-// --- Left hub-end wire relief (in-tray only; NO holes through left back wall) ---
+// Front foot cut into hub casing + floor ledge
+hub_front_cut_d = 5;   // cut back into casing (Y+)
+hub_front_cut_h = 5;   // from floor up
+hub_front_ledge = 2;   // 2×2 mm ledge on floor in front of that cut
+
+// --- Left hub-end wire relief ---
 left_open_w = 10;
 left_open_h = 35;
 
-// --- Right cutout: 10 mm wide; 10 mm wall thickness ONLY at cutout bottom sill ---
-right_wall_t = 10;     // thickness at the sill under the cutout (not full wall height)
-right_slot_w = 10;     // cutout width (exactly 10 mm)
-right_slot_d = 35;     // top cutout depth from top of tray
-right_sill_h = 8;      // height of the thick pad under the cutout bottom
-right_sill_x_pad = 3;  // extra shoulder either side of the 10 mm slot
+// --- Right cutout ---
+right_wall_t = 10;
+right_slot_w = 10;
+right_slot_d = 35;
+right_sill_h = 8;
+right_sill_x_pad = 3;
 
-// Side-bracket cutout (right fence): 8 mm wide, down hub_H/2 + 5 from top of holder
+// Right wall block: from cutout, in 10 mm, down to floor, as wide as hub side
+right_block_in = 10;       // come in from back wall inner face
+right_block_w  = hub_T;    // as wide as the side of the USB hub (20 mm)
+
+// Side-bracket cutout (right fence)
 side_bracket_cut_w = 8;
-side_bracket_cut_h = hub_H / 2 + 5;  // 30 mm for 50 mm hub
+side_bracket_cut_h = hub_H / 2 + 5;
 
-// Fence thickness at hub ends
 fence_w = 3;
 
-// --- Fillet / print helpers ---
 $fn = 48;
 eps = 0.05;
 
-// Right cutout X placement: centred in the right residual band, but only 10 mm wide.
-// Prefer hugging the hub right end so cable leaves the hub cleanly.
 right_slot_x0 = hub_x1 + ( (W - hub_x1) - right_slot_w ) / 2;
+
+// =============================================================================
+// PRIMITIVES — rounded boxes (vertical corners + optional full 3D corners)
+// =============================================================================
+
+// Rounded rectangle extruded (rounds all vertical corners). r clamped to size.
+module rounded_rect_extrude(size, r, center = false) {
+    x = size[0];
+    y = size[1];
+    z = size[2];
+    rr = min(r, x / 2 - eps, y / 2 - eps);
+    translate(center ? [-x/2, -y/2, -z/2] : [0, 0, 0])
+        linear_extrude(height = z)
+            offset(r = rr)
+                offset(r = -rr)
+                    square([x, y]);
+}
+
+// Full 3D corner rounding via minkowski (use sparingly on small parts).
+module rounded_cube3(size, r) {
+    rr = min(r, size[0]/2 - eps, size[1]/2 - eps, size[2]/2 - eps);
+    if (rr <= 0) {
+        cube(size);
+    } else {
+        minkowski() {
+            translate([rr, rr, rr])
+                cube([size[0] - 2*rr, size[1] - 2*rr, size[2] - 2*rr]);
+            sphere(r = rr, $fn = 20);
+        }
+    }
+}
 
 // =============================================================================
 // STRUCTURE
 // =============================================================================
 
 module floor_plate() {
-    cube([W, D, floor_t]);
+    rounded_rect_extrude([W, D, floor_t], corner_r);
 }
 
 module left_wall() {
+    // Outer front/back corners of left wall get rounding via outer envelope pass;
+    // wall itself is a simple slab (joins floor/back).
     cube([wall, D, H]);
 }
 
@@ -120,62 +153,57 @@ module right_wall() {
 }
 
 module back_wall_main() {
-    // 4 mm back wall across full width (base)
     translate([0, D - wall, 0])
         cube([W, wall, H]);
 }
 
 module back_wall_right_cutout_sill() {
-    // 10 mm thick pad ONLY at the bottom of the right cutout — not full height
-    // up the side. Forms a deep sill so the cable rests on 10 mm of material
-    // instead of a thin 4 mm wall edge. Thickens INWARD (outer envelope unchanged).
     x0 = right_slot_x0 - right_sill_x_pad;
     xw = right_slot_w + 2 * right_sill_x_pad;
-    z_sill = H - right_slot_d;           // bottom of the cutout
-    z0 = z_sill - right_sill_h;          // thick pad sits under the sill
+    z_sill = H - right_slot_d;
+    z0 = z_sill - right_sill_h;
     translate([x0, D - right_wall_t, z0])
-        cube([xw, right_wall_t - wall, right_sill_h]);
+        rounded_rect_extrude([xw, right_wall_t - wall, right_sill_h], min(corner_r, 0.8));
+}
+
+// Block against inside of outer right wall:
+// from the back-right cutout, come in 10 mm, down to the floor,
+// as wide as the side of the USB hub (hub_T).
+module right_wall_inner_block() {
+    // X: inward from right wall by hub_T (width of hub side)
+    // Y: rear face 10 mm in from back wall inner face; extends forward by hub_T
+    // Z: floor up to bottom of the right cutout (connects the drop path)
+    x0 = W - wall - right_block_w;
+    y1 = D - wall - right_block_in;
+    y0 = y1 - right_block_w;
+    z0 = floor_t;
+    z1 = H - right_slot_d;
+    translate([x0, y0, z0])
+        rounded_rect_extrude([right_block_w, right_block_w, z1 - z0], corner_r);
 }
 
 module front_ledge() {
-    cube([W, wall, floor_t + front_ledge_h]);
+    // Rounded outer front corners of the ledge footprint
+    rounded_rect_extrude([W, wall, floor_t + front_ledge_h], corner_r);
 }
 
-// --- Inner stacking ridge (at top) ---
-// Projects inward from L/R/back walls. Front is open (no ridge on front ledge).
 module stack_inner_ridge() {
-    // Left inner ridge
     translate([wall, 0, H - stack_lip_h])
         cube([stack_step, D - wall, stack_lip_h]);
-    // Right inner ridge
     translate([W - wall - stack_step, 0, H - stack_lip_h])
         cube([stack_step, D - wall, stack_lip_h]);
-    // Back inner ridge
     translate([wall, D - wall - stack_step, H - stack_lip_h])
         cube([W - 2*wall, stack_step, stack_lip_h]);
 }
 
-// Bottom foot: outer perimeter cut away so the remaining foot is small enough
-// to drop into the tray below and rest on its INNER ridge.
-// Foot outer size = full_inner - 2*stack_clear = (W - 2*wall) - 2*stack_clear  on X
-// and similarly on Y (front/back).
 module stack_bottom_foot_cut() {
-    // Full inner opening of tray below (no ridge): W - 2*wall
-    // Ridge opening: W - 2*wall - 2*stack_step
-    // Foot must be: ridge_opening < foot < full_inner
-    // foot half-inset from outer = wall + stack_clear
     inset = wall + stack_clear;
-
-    // Left strip
     translate([-eps, -eps, -eps])
         cube([inset + eps, D + 2*eps, stack_lip_h + eps]);
-    // Right strip
     translate([W - inset, -eps, -eps])
         cube([inset + eps, D + 2*eps, stack_lip_h + eps]);
-    // Back strip
     translate([-eps, D - inset, -eps])
         cube([W + 2*eps, inset + eps, stack_lip_h + eps]);
-    // Front strip
     translate([-eps, -eps, -eps])
         cube([W + 2*eps, inset + eps, stack_lip_h + eps]);
 }
@@ -185,42 +213,45 @@ module stack_bottom_foot_cut() {
 // =============================================================================
 
 module hub_side_fence_left() {
-    // Extends forward to the front face of the side ridges
     x = hub_x0 - fence_w;
     translate([x, hub_front_y, floor_t])
-        cube([fence_w, hub_holder_d, hub_z1 - floor_t]);
+        rounded_rect_extrude([fence_w, hub_holder_d, hub_case_z1 - floor_t], min(corner_r, fence_w/2 - eps));
 }
 
 module hub_side_fence_right() {
-    // Extends forward to the front face of the side ridges
     translate([hub_x1, hub_front_y, floor_t])
-        cube([fence_w, hub_holder_d, hub_z1 - floor_t]);
+        rounded_rect_extrude([fence_w, hub_holder_d, hub_case_z1 - floor_t], min(corner_r, fence_w/2 - eps));
 }
 
 module hub_shelf() {
-    // Shelf under hub, also extends to front of ridges
     translate([hub_x0 - fence_w, hub_front_y, floor_t])
         cube([hub_L + 2*fence_w, hub_holder_d, hub_shelf_h]);
 }
 
-// 5 mm side ridges that catch the front of the hub (flush with extended brackets)
 module hub_side_ridges() {
     z0 = hub_z0 + ridge_z_pad;
-    zh = hub_H - 2*ridge_z_pad;
-    // Left ridge: at left end of hub, in front of hub face
+    // Extend ridges up with the casing (+5 mm above hub)
+    zh = hub_H - 2*ridge_z_pad + hub_case_extra_h;
     translate([hub_x0, hub_front_y, z0])
         cube([ridge_w, ridge_overhang + eps, zh]);
-    // Right ridge: at right end of hub
     translate([hub_x1 - ridge_w, hub_front_y, z0])
         cube([ridge_w, ridge_overhang + eps, zh]);
 }
 
-// Same ridge treatment along the bottom front of the hub holder
 module hub_bottom_ridge() {
-    // 5 mm tall lip in front of the hub bottom face, full hub length
-    // (side ridges cover the corners; this spans the middle)
     translate([hub_x0, hub_front_y, hub_z0])
         cube([hub_L, ridge_overhang + eps, ridge_w]);
+}
+
+// 2×2 mm ledge on the floor, level with the front of the hub casing,
+// spanning the full casing width, in front of the front foot cutout.
+module hub_front_floor_ledge() {
+    x0 = hub_x0 - fence_w;
+    xw = hub_L + 2*fence_w;
+    // Front face of ledge flush with hub casing front (hub_front_y);
+    // ledge occupies y in [hub_front_y - 2, hub_front_y], z floor_t .. floor_t+2
+    translate([x0, hub_front_y - hub_front_ledge, floor_t])
+        rounded_rect_extrude([xw, hub_front_ledge, hub_front_ledge], min(corner_r, 0.8));
 }
 
 // =============================================================================
@@ -229,82 +260,97 @@ module hub_bottom_ridge() {
 
 module hub_body_void() {
     fit = 0.6;
-    // Open all the way to the top for drop-in (also clears the inner stack ridge
-    // over the hub span). Do NOT cut into Y < hub_y0 — side ridges live there.
+    // Cavity for hub body; open above casing for drop-in
     translate([hub_x0 - fit/2, hub_y0, hub_z0])
         cube([hub_L + fit, hub_T + fit, H - hub_z0 + eps]);
 }
 
-module behind_hub_groove() {
-    // Groove only under the hub span in the main (4 mm) back wall.
-    // No through-holes on the left of the back wall.
-    translate([
-        hub_x0 + groove_margin_x,
-        D - wall - eps,
-        groove_z0
-    ])
-        cube([
-            hub_L - 2*groove_margin_x,
-            groove_depth + eps,
-            groove_h
-        ]);
-}
-
 module left_wire_relief() {
-    // Wire clearance at LEFT end of hub — stays INSIDE the tray (through the
-    // left fence into the bay). Does NOT pierce the left back wall.
     z0 = hub_z0 + (hub_H - left_open_h) / 2;
     translate([hub_x0 - fence_w - eps, hub_y0 + (hub_T - left_open_w) / 2, z0])
         cube([fence_w + 2*eps + 2, left_open_w, left_open_h]);
 }
 
 module right_top_slot() {
-    // Exactly 10 mm wide × 35 mm deep from top.
-    // Upper span cuts the normal 4 mm back wall; at the sill the pad is 10 mm thick.
     z0 = H - right_slot_d;
     x0 = right_slot_x0;
 
-    // Through main back wall (full cutout height)
     translate([x0, D - wall - eps, z0])
         cube([right_slot_w, wall + 2*eps, right_slot_d + eps]);
 
-    // Clear the thick sill pad at the bottom of the cutout (same X/width)
-    // so the opening lands cleanly on the 10 mm sill top.
     translate([x0, D - right_wall_t - eps, z0 - eps])
         cube([right_slot_w, right_wall_t - wall + 2*eps, eps + 1]);
 
-    // Channel from hub right end to the slot (through extended fence / bay)
-    // Only needs normal wall depth — not a full-height thick wall.
     translate([hub_x1 - eps, hub_front_y, z0])
         cube([x0 + right_slot_w - hub_x1 + eps, hub_holder_d + wall, right_slot_d + eps]);
 }
 
 module right_side_bracket_cutout() {
-    // Cutout on the RIGHT side bracket of the hub holder (not through the back wall).
-    // 8 mm wide (along Y), goes down (hub_H/2 + 5) from the top of the holder.
-    // Open to the top for cable drop-in. Centered on hub depth (not biased to front).
     zh = side_bracket_cut_h;
+    // Measured from original hub top; casing is higher but cut still from hub mid-band
     z0 = hub_z1 - zh;
     y0 = hub_y0 + (hub_T - side_bracket_cut_w) / 2;
     translate([hub_x1 - eps, y0, z0])
         cube([fence_w + 2*eps, side_bracket_cut_w, H - z0 + eps]);
 }
 
+// Front of hub casing: from floor to 5 mm up, cut back 5 mm into the casing
+module hub_front_foot_cut() {
+    x0 = hub_x0 - fence_w - eps;
+    xw = hub_L + 2*fence_w + 2*eps;
+    translate([x0, hub_front_y - eps, floor_t - eps])
+        cube([xw, hub_front_cut_d + eps, hub_front_cut_h + eps]);
+}
+
 module hub_access_throat() {
-    // Floor recess in front of the holder for fat USB plugs — stops at holder front
-    // so it does not undercut the bottom ridge / extended shelf.
     plug_clear_d = 25;
     plug_clear_h = 8;
-    y0 = hub_front_y - plug_clear_d;
+    // Stop short of the 2 mm floor ledge
+    y1 = hub_front_y - hub_front_ledge;
+    y0 = y1 - plug_clear_d;
     translate([hub_x0 + ridge_w, y0, floor_t - eps])
         cube([hub_L - 2*ridge_w, plug_clear_d, plug_clear_h + eps]);
+}
+
+// Outer vertical corner fillet cutters: subtract (square − cylinder) at each
+// outer corner so the remaining solid has a 1 mm rounded corner.
+module outer_corner_fillet_cutters() {
+    r = corner_r;
+    // Front-left
+    translate([0, 0, -eps])
+        difference() {
+            cube([r + eps, r + eps, H + 2*eps]);
+            translate([r, r, -eps])
+                cylinder(r = r, h = H + 4*eps, $fn = 32);
+        }
+    // Front-right
+    translate([W - r, 0, -eps])
+        difference() {
+            cube([r + eps, r + eps, H + 2*eps]);
+            translate([0, r, -eps])
+                cylinder(r = r, h = H + 4*eps, $fn = 32);
+        }
+    // Back-right
+    translate([W - r, D - r, -eps])
+        difference() {
+            cube([r + eps, r + eps, H + 2*eps]);
+            translate([0, 0, -eps])
+                cylinder(r = r, h = H + 4*eps, $fn = 32);
+        }
+    // Back-left
+    translate([0, D - r, -eps])
+        difference() {
+            cube([r + eps, r + eps, H + 2*eps]);
+            translate([r, 0, -eps])
+                cylinder(r = r, h = H + 4*eps, $fn = 32);
+        }
 }
 
 // =============================================================================
 // ASSEMBLY
 // =============================================================================
 
-module tray() {
+module tray_raw() {
     difference() {
         union() {
             floor_plate();
@@ -313,28 +359,35 @@ module tray() {
             back_wall_main();
             back_wall_right_cutout_sill();
             front_ledge();
+            right_wall_inner_block();
 
-            // Inner stacking ridge at top
             stack_inner_ridge();
 
-            // Hub location features
             hub_side_fence_left();
             hub_side_fence_right();
             hub_shelf();
             hub_side_ridges();
             hub_bottom_ridge();
+            hub_front_floor_ledge();
         }
 
-        // Bottom foot for nesting onto the tray below's INNER ridge
         stack_bottom_foot_cut();
 
-        // Hub + cable features
         hub_body_void();
-        behind_hub_groove();
+        // behind_hub_groove removed (v1.4)
         left_wire_relief();
         right_top_slot();
         right_side_bracket_cutout();
+        hub_front_foot_cut();
         hub_access_throat();
+    }
+}
+
+module tray() {
+    // Apply 1 mm outer vertical corner rounding to the finished solid
+    difference() {
+        tray_raw();
+        outer_corner_fillet_cutters();
     }
 }
 
@@ -353,18 +406,14 @@ tray();
 if (render_hub_ghost)
     %ghost_hub();
 
-echo("=== Tray v1.2 ===");
+echo("=== Tray v1.4 ===");
 echo("Outer W×D×H mm:", W, D, H);
+echo("Corner radius:", corner_r);
 echo("Wall / floor:", wall, floor_t);
-echo("Right cutout sill thick (bottom only):", right_wall_t, " sill_h=", right_sill_h);
-echo("Front ledge H:", front_ledge_h);
-echo("Hub cavity X:", hub_x0, "→", hub_x1, " (L=", hub_L, ")");
-echo("Hub cavity Y:", hub_y0, "→", hub_y1, " (T=", hub_T, ")");
-echo("Hub cavity Z:", hub_z0, "→", hub_z1, " (H=", hub_H, ")");
-echo("Holder front Y:", hub_front_y, " depth:", hub_holder_d);
-echo("Ridges: w/h=", ridge_w, " overhang=", ridge_overhang, " (sides + bottom)");
-echo("Right top slot: w=", right_slot_w, " d_from_top=", right_slot_d, " x0=", right_slot_x0);
-echo("Right side-bracket cutout: w=", side_bracket_cut_w, " h=", side_bracket_cut_h);
-echo("Stack: INNER ridge step", stack_step, " lip_h", stack_lip_h, " clear", stack_clear);
-echo("Left clearance (outer):", hub_x0, "mm");
-echo("Right clearance (outer):", W - hub_x1, "mm");
+echo("Hub casing top Z:", hub_case_z1, "(+5 mm over hub)");
+echo("Front foot cut: d=", hub_front_cut_d, " h=", hub_front_cut_h, " ledge=", hub_front_ledge);
+echo("Right block: in=", right_block_in, " w=", right_block_w, " (hub side)");
+echo("Hub cavity X:", hub_x0, "→", hub_x1);
+echo("Hub cavity Y:", hub_y0, "→", hub_y1);
+echo("Hub cavity Z:", hub_z0, "→", hub_z1);
+echo("Behind-hub groove: REMOVED");
