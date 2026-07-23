@@ -1,5 +1,5 @@
 // =============================================================================
-// Project Trays — USB Hub Stackable Tray  (v1.4)
+// Project Trays — USB Hub Stackable Tray  (v1.5)
 // =============================================================================
 // Outer envelope: 9" W × 6" D × 3" H
 // Front (one 9" side): open, with 1/4" bottom ledge
@@ -8,12 +8,10 @@
 // Walls: ≥ 4 mm outer thickness
 // Units: millimetres
 //
-// v1.4+:
-//  - 1 mm rounding on corners
-//  - Removed behind-hub back-wall groove
-//  - Hub casing +5 mm height
-//  - Front casing foot cut 5 mm deep × 5 mm high + 2×2 mm floor ledge
-//  - Right-of-mount wall block removed
+// v1.5:
+//  - Hub mount 5 mm out from back wall
+//  - Right back wall thickened to 10 mm (full height on right side)
+//  - Right cutout: 5 mm wide × 10 mm high + 5 mm-diameter half-circle below
 // =============================================================================
 
 // --- Conversions ---
@@ -60,7 +58,9 @@ hub_case_z1 = hub_z1 + hub_case_extra_h;
 //   X: 0 = left outer,  W = right outer
 //   Y: 0 = front outer, D = back outer
 //   Z: 0 = bottom outer, H = top
-hub_y1 = D - wall;
+// Hub mount stands 5 mm out from the back wall (cable gap behind hub).
+hub_back_gap = 5;
+hub_y1 = D - wall - hub_back_gap;
 hub_y0 = hub_y1 - hub_T;
 
 // --- Hub side / bottom hold ridges ---
@@ -80,12 +80,15 @@ hub_front_ledge = 2;   // 2×2 mm ledge on floor in front of that cut
 left_open_w = 10;
 left_open_h = 35;
 
-// --- Right cutout ---
+// --- Right back wall: 10 mm thick on the right side + cable cutout ---
+// Cutout: 5 mm wide × 10 mm high rectangle + 5 mm diameter half-circle below
+// (total opening height = 10 + 2.5 = 12.5 mm from the top).
 right_wall_t = 10;
-right_slot_w = 10;
-right_slot_d = 35;
-right_sill_h = 8;
-right_sill_x_pad = 3;
+right_slot_w = 5;
+right_slot_rect_h = 10;
+right_slot_dia = 5;                    // half-circle diameter (= width)
+right_slot_r = right_slot_dia / 2;     // 2.5
+right_slot_total_h = right_slot_rect_h + right_slot_r;  // 12.5
 
 // Side-bracket cutout (right fence)
 side_bracket_cut_w = 8;
@@ -96,6 +99,7 @@ fence_w = 3;
 $fn = 48;
 eps = 0.05;
 
+// Centre the 5 mm cutout in the right residual band (between hub end and tray end)
 right_slot_x0 = hub_x1 + ( (W - hub_x1) - right_slot_w ) / 2;
 
 // =============================================================================
@@ -153,13 +157,12 @@ module back_wall_main() {
         cube([W, wall, H]);
 }
 
-module back_wall_right_cutout_sill() {
-    x0 = right_slot_x0 - right_sill_x_pad;
-    xw = right_slot_w + 2 * right_sill_x_pad;
-    z_sill = H - right_slot_d;
-    z0 = z_sill - right_sill_h;
-    translate([x0, D - right_wall_t, z0])
-        rounded_rect_extrude([xw, right_wall_t - wall, right_sill_h], min(corner_r, 0.8));
+// Full-height 10 mm thickening of the back wall on the RIGHT side of the tray
+// (from hub right end to outer right). Thickens INWARD so outer envelope is unchanged.
+module back_wall_right_thick() {
+    x0 = hub_x1;
+    translate([x0, D - right_wall_t, 0])
+        cube([W - x0, right_wall_t - wall, H]);
 }
 
 module front_ledge() {
@@ -251,18 +254,46 @@ module left_wire_relief() {
         cube([fence_w + 2*eps + 2, left_open_w, left_open_h]);
 }
 
-module right_top_slot() {
-    z0 = H - right_slot_d;
+// Right cable cutout through the 10 mm thick right back wall:
+// 5 mm wide, 10 mm high rectangle open from the top, plus a 5 mm-diameter
+// half-circle below (U-notch with rounded bottom). Total height = 10 + 2.5 = 12.5.
+module right_cable_cutout() {
+    w  = right_slot_w;
+    rh = right_slot_rect_h;
+    r  = right_slot_r;
     x0 = right_slot_x0;
+    cx = x0 + w / 2;
+    y0 = D - right_wall_t - eps;
+    yd = right_wall_t + 2 * eps;
 
-    translate([x0, D - wall - eps, z0])
-        cube([right_slot_w, wall + 2*eps, right_slot_d + eps]);
+    // 2D profile in XZ, extruded through the thick wall in +Y
+    // rotate([-90,0,0]) maps local +Z extrusion → world +Y
+    translate([0, y0, 0])
+        rotate([-90, 0, 0])
+            linear_extrude(height = yd)
+                translate([cx, 0])
+                    union() {
+                        // Rectangle open from top (z = H-rh .. H+)
+                        translate([-w/2, H - rh])
+                            square([w, rh + 1]);
+                        // Half-circle below the rectangle (diameter = 5 mm)
+                        translate([0, H - rh])
+                            difference() {
+                                circle(r = r, $fn = 32);
+                                // Keep only the lower half (negative Y in 2D = down in Z)
+                                translate([-r - 1, 0])
+                                    square([2*r + 2, r + 1]);
+                            }
+                    }
 
-    translate([x0, D - right_wall_t - eps, z0 - eps])
-        cube([right_slot_w, right_wall_t - wall + 2*eps, eps + 1]);
-
-    translate([hub_x1 - eps, hub_front_y, z0])
-        cube([x0 + right_slot_w - hub_x1 + eps, hub_holder_d + wall, right_slot_d + eps]);
+    // Channel from hub right end through the 5 mm back gap to the cutout
+    z0 = H - right_slot_total_h;
+    translate([hub_x1 - eps, hub_y1, z0])
+        cube([
+            x0 + w - hub_x1 + eps,
+            (D - wall) - hub_y1 + eps,
+            right_slot_total_h + eps
+        ]);
 }
 
 module right_side_bracket_cutout() {
@@ -337,7 +368,7 @@ module tray_raw() {
             left_wall();
             right_wall();
             back_wall_main();
-            back_wall_right_cutout_sill();
+            back_wall_right_thick();
             front_ledge();
 
             stack_inner_ridge();
@@ -353,9 +384,8 @@ module tray_raw() {
         stack_bottom_foot_cut();
 
         hub_body_void();
-        // behind_hub_groove removed (v1.4)
         left_wire_relief();
-        right_top_slot();
+        right_cable_cutout();
         right_side_bracket_cutout();
         hub_front_foot_cut();
         hub_access_throat();
@@ -385,13 +415,15 @@ tray();
 if (render_hub_ghost)
     %ghost_hub();
 
-echo("=== Tray v1.4 ===");
+echo("=== Tray v1.5 ===");
 echo("Outer W×D×H mm:", W, D, H);
 echo("Corner radius:", corner_r);
 echo("Wall / floor:", wall, floor_t);
+echo("Hub back gap:", hub_back_gap, "mm from back wall");
 echo("Hub casing top Z:", hub_case_z1, "(+5 mm over hub)");
 echo("Front foot cut: d=", hub_front_cut_d, " h=", hub_front_cut_h, " ledge=", hub_front_ledge);
+echo("Right wall thick:", right_wall_t, "mm (right side)");
+echo("Right cutout: w=", right_slot_w, " rect_h=", right_slot_rect_h, " half-circle d=", right_slot_dia, " total_h=", right_slot_total_h);
 echo("Hub cavity X:", hub_x0, "→", hub_x1);
 echo("Hub cavity Y:", hub_y0, "→", hub_y1);
 echo("Hub cavity Z:", hub_z0, "→", hub_z1);
-echo("Behind-hub groove: REMOVED");
