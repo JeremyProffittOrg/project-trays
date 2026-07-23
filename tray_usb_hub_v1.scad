@@ -279,14 +279,6 @@ module right_cable_cutout() {
     translate([cx, y0, H - h + r])
         rotate([-90, 0, 0])
             cylinder(r = r, h = yd, $fn = 32);
-
-    // Path from hub bay / 5 mm back-gap into the cutout
-    translate([hub_x1 - eps, hub_y1, H - h])
-        cube([
-            x0 + w - hub_x1 + eps,
-            (D - wall) - hub_y1 + eps,
-            h + eps
-        ]);
 }
 
 module right_side_bracket_cutout() {
