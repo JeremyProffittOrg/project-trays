@@ -1,7 +1,7 @@
 // =============================================================================
 // Project Trays — USB Hub Stackable Tray  (v1.6)
 // =============================================================================
-// Outer envelope: 9" W × 6" D × 3" H
+// Outer envelope: 9" W × 8" D × 3" H
 // Front (one 9" side): open, with 1/4" bottom ledge
 // Back (other 9" side): Anker USB-C hub mount + cable routing
 // Hub: 151 × 20 × 50 mm (L × T × H)
@@ -18,7 +18,7 @@ inch = 25.4;
 
 // --- Outer envelope ---
 W = 9 * inch;          // 228.6  width  (X)
-D = 6 * inch;          // 152.4  depth  (Y)
+D = 8 * inch;          // 203.2  depth  (Y)
 H = 3 * inch;          // 76.2   height (Z)
 
 // --- Structure ---
