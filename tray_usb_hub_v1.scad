@@ -8,12 +8,12 @@
 // Walls: ≥ 4 mm outer thickness
 // Units: millimetres
 //
-// v1.4:
+// v1.4+:
 //  - 1 mm rounding on corners
-//  - Right-wall block from back cutout (in 10 mm, down to floor, hub-side wide)
 //  - Removed behind-hub back-wall groove
 //  - Hub casing +5 mm height
 //  - Front casing foot cut 5 mm deep × 5 mm high + 2×2 mm floor ledge
+//  - Right-of-mount wall block removed
 // =============================================================================
 
 // --- Conversions ---
@@ -86,10 +86,6 @@ right_slot_w = 10;
 right_slot_d = 35;
 right_sill_h = 8;
 right_sill_x_pad = 3;
-
-// Right wall block: from cutout, in 10 mm, down to floor, as wide as hub side
-right_block_in = 10;       // come in from back wall inner face
-right_block_w  = hub_T;    // as wide as the side of the USB hub (20 mm)
 
 // Side-bracket cutout (right fence)
 side_bracket_cut_w = 8;
@@ -164,22 +160,6 @@ module back_wall_right_cutout_sill() {
     z0 = z_sill - right_sill_h;
     translate([x0, D - right_wall_t, z0])
         rounded_rect_extrude([xw, right_wall_t - wall, right_sill_h], min(corner_r, 0.8));
-}
-
-// Block against inside of outer right wall:
-// from the back-right cutout, come in 10 mm, down to the floor,
-// as wide as the side of the USB hub (hub_T).
-module right_wall_inner_block() {
-    // X: inward from right wall by hub_T (width of hub side)
-    // Y: rear face 10 mm in from back wall inner face; extends forward by hub_T
-    // Z: floor up to bottom of the right cutout (connects the drop path)
-    x0 = W - wall - right_block_w;
-    y1 = D - wall - right_block_in;
-    y0 = y1 - right_block_w;
-    z0 = floor_t;
-    z1 = H - right_slot_d;
-    translate([x0, y0, z0])
-        rounded_rect_extrude([right_block_w, right_block_w, z1 - z0], corner_r);
 }
 
 module front_ledge() {
@@ -359,7 +339,6 @@ module tray_raw() {
             back_wall_main();
             back_wall_right_cutout_sill();
             front_ledge();
-            right_wall_inner_block();
 
             stack_inner_ridge();
 
@@ -412,7 +391,6 @@ echo("Corner radius:", corner_r);
 echo("Wall / floor:", wall, floor_t);
 echo("Hub casing top Z:", hub_case_z1, "(+5 mm over hub)");
 echo("Front foot cut: d=", hub_front_cut_d, " h=", hub_front_cut_h, " ledge=", hub_front_ledge);
-echo("Right block: in=", right_block_in, " w=", right_block_w, " (hub side)");
 echo("Hub cavity X:", hub_x0, "→", hub_x1);
 echo("Hub cavity Y:", hub_y0, "→", hub_y1);
 echo("Hub cavity Z:", hub_z0, "→", hub_z1);
